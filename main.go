@@ -1,3 +1,4 @@
+//Copyright 2022 Ruel Tmeizeh - All Rights Reserved
 package main
 
 import (
