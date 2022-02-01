@@ -1,4 +1,4 @@
-module googletts
+module gsquawk
 
 go 1.16
 
