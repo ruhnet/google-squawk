@@ -18,6 +18,7 @@ import (
 type CommandlineOptions struct {
 	Ssml       *bool    `json:"ssml,omitempty"`
 	Output     *string  `json:"output,omitempty"`
+	Input      *string  `json:"input,omitempty"`
 	Language   *string  `json:"lang,omitempty"`
 	Gender     *string  `json:"gender,omitempty"`
 	Voice      *string  `json:"voice,omitempty"`
@@ -32,15 +33,16 @@ func main() {
 	//check commandline args:
 	opts := &CommandlineOptions{
 		Ssml:       flag.Bool("ssml", false, "Input is SSML format, rather than plain text."),
+		Input:      flag.String("i", "-", "Input file path. Defaults to stdin."),
 		Output:     flag.String("o", "./tts.mp3", "Output file path. Use '-' for stdout."),
-		Language:   flag.String("l", "en-US", "Language selection. 'en-US', 'en-GB', 'en-AU', 'en-IN', 'el-GR', 'ru-RU', etc."),
-		Gender:     flag.String("g", "m", "Gender selection. [m,f,n]"),
-		Format:     flag.String("f", "mp3", "Format selection. [mp3,opus,pcm,ulaw,alaw]"),
+		Language:   flag.String("l", "en-US", "Language selection. 'en-US', 'en-GB', 'en-AU', 'en-IN',\n'el-GR', 'ru-RU', etc."),
+		Gender:     flag.String("g", "m", "Gender selection. [m,f,n] 'n' means neutral/don't care."),
+		Format:     flag.String("f", "mp3", "Audio format selection. MP3 is 32k [mp3,opus,pcm,ulaw,alaw]"),
 		Voice:      flag.String("v", "unspecified", "Voice. If specified, this overrides language & gender."),
-		Speed:      flag.Float64("s", 1.0, "Speed. E.g. '1.0' is normal. '2.0' is double speed, '0.25' is quarter speed, etc."),
-		Pitch:      flag.Float64("p", 1.0, "Pitch. E.g. '0.0' is normal. '20.0' is highest, '-20.0' is lowest."),
-		SampleRate: flag.Int("r", 32000, "Samplerate. [8000,11025,16000,22050,24000,32000,44100,48000]"),
-		VolumeGain: flag.Float64("db", 0.0, "Volume gain in dB."),
+		Speed:      flag.Float64("s", 1.0, "Speed. E.g. '1.0' is normal. '2.0' is double\nspeed, '0.25' is quarter speed, etc."),
+		Pitch:      flag.Float64("p", 1.0, "Pitch. E.g. '0.0' is normal. '20.0' is highest,\n'-20.0' is lowest."),
+		SampleRate: flag.Int("r", 24000, "Samplerate in Hz. [8000,11025,16000,22050,24000,32000,44100,48000]"),
+		VolumeGain: flag.Float64("-db", 0.0, "Volume gain in dB. [-96 to 16]"),
 	}
 	flag.Parse()
 
@@ -75,6 +77,29 @@ func main() {
 		filename = *opts.Output
 	}
 
+	var inputFile *os.File
+	if *opts.Input == "-" {
+		//read input from stdin
+		inputFile = os.Stdin
+	} else {
+		//read input from file
+		var err error
+		inputFile, err = os.Open(*opts.Input)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer inputFile.Close()
+	}
+
+	var input string
+
+	scanner := bufio.NewScanner(inputFile)
+	for scanner.Scan() {
+		//fmt.Println(scanner.Text())
+		input = input + scanner.Text()
+	}
+
+	///////////////////////////////////////
 	//Instantiates a Google Cloud client
 	ctx := context.Background()
 	client, err := texttospeech.NewClient(ctx)
@@ -83,10 +108,7 @@ func main() {
 	}
 	defer client.Close()
 
-	//take input from stdin
-	stdinReader := bufio.NewReader(os.Stdin)
-	input, _ := stdinReader.ReadString('\n')
-
+	//Start building TTS request things
 	synthInput := &texttospeechpb.SynthesisInput{}
 	synthInput.InputSource = &texttospeechpb.SynthesisInput_Text{Text: input}
 	if *opts.Ssml {
