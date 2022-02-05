@@ -7,6 +7,7 @@ import (
 	"encoding/binary"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -16,10 +17,11 @@ import (
 )
 
 type CommandlineOptions struct {
+	ListVoices *bool    `json:"listvoices,omitempty"`
 	Ssml       *bool    `json:"ssml,omitempty"`
 	Output     *string  `json:"output,omitempty"`
 	Input      *string  `json:"input,omitempty"`
-	Language   *string  `json:"lang,omitempty"`
+	Language   *string  `json:"language,omitempty"`
 	Gender     *string  `json:"gender,omitempty"`
 	Voice      *string  `json:"voice,omitempty"`
 	Format     *string  `json:"format,omitempty"`
@@ -32,6 +34,7 @@ type CommandlineOptions struct {
 func main() {
 	//check commandline args:
 	opts := &CommandlineOptions{
+		ListVoices: flag.Bool("listvoices", false, "List available voices, rather than generate TTS. Use in\ncombination with '-l ALL' to show voices from all languages."),
 		Ssml:       flag.Bool("ssml", false, "Input is SSML format, rather than plain text."),
 		Input:      flag.String("i", "-", "Input file path. Defaults to stdin."),
 		Output:     flag.String("o", "./tts.mp3", "Output file path. Use '-' for stdout."),
@@ -77,6 +80,23 @@ func main() {
 		filename = *opts.Output
 	}
 
+	///////////////////////////////////////
+	//Instantiates a Google Cloud client
+	ctx := context.Background()
+	client, err := texttospeech.NewClient(ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer client.Close()
+
+	if *opts.ListVoices {
+		fmt.Println("Available Voices:")
+		bufStdout := bufio.NewWriter(os.Stdout)
+		listVoices(bufStdout, ctx, client, *opts.Language)
+		bufStdout.Flush()
+		os.Exit(0)
+	}
+
 	var inputFile *os.File
 	if *opts.Input == "-" {
 		//read input from stdin
@@ -98,15 +118,6 @@ func main() {
 		//fmt.Println(scanner.Text())
 		input = input + scanner.Text()
 	}
-
-	///////////////////////////////////////
-	//Instantiates a Google Cloud client
-	ctx := context.Background()
-	client, err := texttospeech.NewClient(ctx)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer client.Close()
 
 	//Start building TTS request things
 	synthInput := &texttospeechpb.SynthesisInput{}
@@ -167,4 +178,26 @@ func main() {
 		fmt.Printf("Audio content written to file: %v\n", filename)
 	}
 
+}
+
+func listVoices(w io.Writer, ctx context.Context, client *texttospeech.Client, lang string) error {
+	resp, err := client.ListVoices(ctx, &texttospeechpb.ListVoicesRequest{})
+	if err != nil {
+		return err
+	}
+
+	for _, voice := range resp.Voices {
+		for _, languageCode := range voice.LanguageCodes {
+			if lang == languageCode || lang == "ALL" {
+				fmt.Fprintln(w, "___________________________________")
+				fmt.Fprintf(w, "Name: %v\n", voice.Name)
+				fmt.Fprintf(w, "  Language: %v\n", languageCode)
+				fmt.Fprintf(w, "  Gender: %v\n", voice.SsmlGender.String())
+				fmt.Fprintf(w, "  Native Sample Rate (in Hz): %v\n", voice.NaturalSampleRateHertz)
+			}
+		}
+	}
+	fmt.Fprintln(w, "------------------------------------")
+
+	return nil
 }
