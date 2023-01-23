@@ -36,16 +36,16 @@ func main() {
 	opts := &CommandlineOptions{
 		ListVoices: flag.Bool("listvoices", false, "List available voices, rather than generate TTS. Use in\ncombination with '-l ALL' to show voices from all languages."),
 		Ssml:       flag.Bool("ssml", false, "Input is SSML format, rather than plain text."),
-		Input:      flag.String("i", "-", "Input file path. Defaults to stdin."),
-		Output:     flag.String("o", "./tts.mp3", "Output file path. Use '-' for stdout."),
-		Language:   flag.String("l", "en-US", "Language selection. 'en-US', 'en-GB', 'en-AU', 'en-IN',\n'el-GR', 'ru-RU', etc."),
-		Gender:     flag.String("g", "m", "Gender selection. [m,f,n] 'n' means neutral/don't care."),
-		Format:     flag.String("f", "mp3", "Audio format selection. MP3 is 32k [mp3,opus,pcm,ulaw,alaw]"),
-		Voice:      flag.String("v", "unspecified", "Voice. If specified, this overrides language & gender."),
-		Speed:      flag.Float64("s", 1.0, "Speed. E.g. '1.0' is normal. '2.0' is double\nspeed, '0.25' is quarter speed, etc."),
-		Pitch:      flag.Float64("p", 1.0, "Pitch. E.g. '0.0' is normal. '20.0' is highest,\n'-20.0' is lowest."),
-		SampleRate: flag.Int("r", 24000, "Samplerate in Hz. [8000,11025,16000,22050,24000,32000,44100,48000]"),
-		VolumeGain: flag.Float64("-db", 0.0, "Volume gain in dB. [-96 to 16]"),
+		Input:      flag.String("i", "-", "Input file path. Defaults to stdin.\n"),
+		Output:     flag.String("o", "./tts.mp3", "Output file path. Use '-' for stdout.\n"),
+		Language:   flag.String("l", "en-US", "Language selection. 'en-US', 'en-GB', 'en-AU', 'en-IN',\n'el-GR', 'ru-RU', etc.\n"),
+		Gender:     flag.String("g", "m", "Gender selection. [m,f,n] 'n' means neutral/don't care.\n"),
+		Format:     flag.String("f", "mp3", "Audio format selection. PCM is uncompressed best quality. Opus is\nexcellent quality. MP3 is 32kb bitrate. [pcm,opus,mp3,ulaw,alaw]\n"),
+		Voice:      flag.String("v", "unspecified", "Voice. If specified, this overrides language & gender.\n"),
+		Speed:      flag.Float64("s", 1.0, "Speed. E.g. '1.0' is normal. '2.0' is double\nspeed, '0.25' is quarter speed, etc.\n"),
+		Pitch:      flag.Float64("p", 0.0, "Pitch. E.g. '0.0' is normal. '20.0' is highest,\n'-20.0' is lowest.\n (default 0)"),
+		SampleRate: flag.Int("r", 24000, "Samplerate in Hz. [8000,11025,16000,22050,24000,32000,44100,48000]\n"),
+		VolumeGain: flag.Float64("-db", 0.0, "Volume gain in dB. [-96 to 16]\n (default 0)"),
 	}
 	flag.Parse()
 
